@@ -65,7 +65,7 @@ Bear in mind that all the docker containers created here are using named volume 
 ```
 $ docker volume create mariadb-server-data
 
-## docker container run command in the next step will use this flag
+## "docker container run" command in the next step will use this flag
 --mount type=volume,source=mariadb-server-data,target=/var/lib/mysql
 ```
 Reference: [Manage data in Docker](https://docs.docker.com/storage/), by [using volumes](https://docs.docker.com/storage/volumes/), [using bind mounts](https://docs.docker.com/storage/bind-mounts/), and [using tmpfs mounts](https://docs.docker.com/storage/tmpfs/).
@@ -74,13 +74,13 @@ Reference: [Manage data in Docker](https://docs.docker.com/storage/), by [using 
 ```
 $ docker network create --driver bridge back-tier
 
-## docker container run command in the next step will use this flag
+## "docker container run" command in the next step will use this flag
 --network back-tier
 ```
 Reference: [Configure networking](https://docs.docker.com/network/), by [using bridge networks](https://docs.docker.com/network/bridge/), [using overlay networks](https://docs.docker.com/network/overlay/), [using host networking](https://docs.docker.com/network/host/), and etc.
 
 ## _**Step 3 ~ Run MariaDB Container**_
-> You may skip Step 1 because "docker container run" command will pull the image if not found.
+> You may skip the above-mentioned Step 1 because "docker container run" command will pull the image if it is not found.
 
 Note: Container created from MariaDB Image is running mysqld once started. (Tip for Deep Diver, please refer to the MariaDB Image's [Dockerfile](https://github.com/docker-library/mariadb/blob/master/Dockerfile.template), the CMD code at bottom of Dockerfile)
 
@@ -95,7 +95,7 @@ $ docker container run --name mariadb-server --network back-tier \
 ### **Option B: Start a MariaDB server instance by using custom configuration file at host**
 Using --mount to bind mount the /path/on/host/mariadb.conf.d directory at host to /etc/mysql/mariadb.conf.d directory in docker container. Please place your configuration files to the /path/on/host/mariadb.conf.d at host.
 
-Note: If you mount a bind mount into a directory in the container in which some files or directories exist, these files or directories are obscured by the mount.
+Note: If you mount a bind mount to a directory in the docker container, which have existing files or directories, those files or directories are obscured by the mount.
 ```
 $ docker container run --name mariadb-server --network back-tier \
   --mount type=bind,source=/path/on/host/mariadb.conf.d,target=/etc/mysql/mariadb.conf.d \
@@ -126,12 +126,12 @@ Note: Your host machine need to install mysql client
 # find the container's IP address
 $ docker container inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mariadb-server
 
-# run the client and set the server address ("-h") to the container's IP address found
+# run the client and set the server address ("-h") to the container's IP address found using the previous command
 $ mysql -h 172.17.0.2 -u root -p --default-character-set=utf8mb4 
 ```
 
 ## _**Step 4b ~ Connect to MariaDB Server from an application in another Docker container**_
-Create the app container with --network flag which connect the web app container to back-tier network, thus some-app and mariadb-server can reach each other using the container name without knowing the IP address.
+Create the app container with --network flag which will connect the app container to the back-tier network, so that some-app and mariadb-server can reach each other using the container name without knowing the IP address.
 ```
 $ docker run --name some-app --network back-tier -d app-image
 ```
@@ -148,7 +148,7 @@ $ docker network disconnect back-tier some-app
 >_This section is using "docker image build" command to build own private custom made image used for creating container, and "docker-compose" command to run multiple containers which relationships are defined in a yml file. For creating and running a standalone MariaDB container, please refer to [2. Create and Run Standalone MariaDB Container](#2.-Create-and-Run-Standalone-MariaDB-Container)._
 
 ## _**Step 1 ~ Building Custom Made MariaDB Image from Dockerfile**_
-> You may skip this step, Docker Compose in Step 3 handle this.
+> You may skip this step, Docker Compose in Step 3 will handle this.
 
 prepare the Dockerfile for MariaDB
 ```
@@ -176,31 +176,49 @@ $ docker image build -t glennleekg/mariadb-server-utf8mb4:10.3 .
 ```
 
 ## _**Step 2 ~ Building Custom Made OpenjdkSbt Image from Dockerfile**_
-> You may skip this step, Docker Compose in Step 3 handle this.
+> You may skip this step, Docker Compose in Step 3 will handle this.
 
 prepare the Dockerfile for OpenjdkSbt
 ```
-FROM openjdk:8-jdk-alpine
-
-ENV SBT_VERSION 1.2.8
+FROM openjdk:11-jdk-slim
 
 RUN \
-  apk add --no-cache bash && \
-  apk add --no-cache --virtual=build-dependencies curl gzip && \
-  curl -fsSL https://github.com/sbt/sbt/releases/download/v$SBT_VERSION/sbt-$SBT_VERSION.tgz | tar -xzf - -C /usr/local && \
-  ln -s /usr/local/sbt/bin/* /usr/local/bin/ && \
-  apk del build-dependencies
+  apt-get update \
+  && apt-get install -y apt-transport-https bash curl dirmngr gnupg \
+  && echo "deb https://dl.bintray.com/sbt/debian /" | tee -a /etc/apt/sources.list.d/sbt.list \
+  && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2EE0EA64E40A89B84B2DF73499E82A75642AC823 \
+  && apt-get update \
+  && apt-get install -y sbt \
+  && rm -rf /var/lib/apt/lists/*
 
-ENV PROJECT_PATH /projects
+ARG user=developer
+ARG group=developer
+ARG home=/home/$user
+ARG project=projects/project
 
-WORKDIR $PROJECT_PATH
+RUN \
+  groupadd $group \
+  && useradd -m -g $group $user
+
+USER $user
+
+RUN mkdir -p $home/$project
+
+WORKDIR $home/$project
 
 CMD ["bash"]
 ```
 
 build the OpenjdkSbt Image
 ```
-$ docker image build -t glennleekg/openjdk-sbt:8-jdk-alpine
+$ docker image build -t glennleekg/openjdk-sbt:11-jdk-slim-dev
+```
+or build the OpenjdkSbt Image specifying variables' value
+```
+$ docker image build \
+--build-arg user=glennleekg \
+--build-arg group=glennleekg \
+-t glennleekg/openjdk-sbt:11-jdk-slim-dev
 ```
 
 ## _**Step 3 ~ Composing Containers from compose.yml**_
@@ -224,19 +242,28 @@ services:
   mariadb-server:
     build:
       context: https://raw.githubusercontent.com/glennleekg/mariadb-server-utf8mb4/master/10.3/Dockerfile
+      args:
+        - user=$USER
+        - group=$USER
+        - project=projects/play-scala-anorm-example/sql
     image: glennleekg/mariadb-server-utf8mb4:10.3
     environment: 
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: playdb
     volumes:
       - mariadb-server-data:/var/lib/mysql
+      - ./sql:/home/$USER/projects/play-scala-anorm-example/sql
     networks:
       - backend
     
   play-scala-anorm:
     build:
       context: https://raw.githubusercontent.com/glennleekg/openjdk-sbt/master/11-jdk-slim-dev/Dockerfile
-    image: glennleekg/openjdk-sbt:8-jdk-alpine
+      args:
+        - user=$USER
+        - group=$USER
+        - project=projects/play-scala-anorm-example
+    image: glennleekg/openjdk-sbt:11-jdk-slim-dev
     expose:
       - 9000
       - 9443
@@ -244,12 +271,11 @@ services:
       - 9000:9000
       - 9443:9443
     volumes:
-      - ${PWD}:/root/play-scala-anorm-example
-      - ~/.ivy2:/root/.ivy2
-      - ~/.sbt:/root/.sbt
+      - .:/home/$USER/projects/play-scala-anorm-example
+      - ~/.ivy2:/home/$USER/.ivy2
+      - ~/.sbt:/home/$USER/.sbt
     networks:
       - backend
-    working_dir: /root/play-scala-anorm-example
     stdin_open: true
     tty: true
 
@@ -260,7 +286,6 @@ volumes:
 networks:
   backend:
     driver: bridge
-
 ```
 
 ### **Compose development environment**
