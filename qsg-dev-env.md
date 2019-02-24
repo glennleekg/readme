@@ -29,6 +29,17 @@ If you would like to use Docker as a non-root user, you should now consider addi
 ```
 $ sudo usermod -aG docker your-user
 ```
+
+## _**Step 3 ~ Install Docker Machine**_
+> If you are using Docker For Windows or Docker For Mac, the installer already have Docker Machine and Docker Compose bundled and installed.
+
+Follow the [official installation guide](https://docs.docker.com/machine/install-machine/). The version number shown on the guide might not be the latest, please visit [docker machine github release page](https://github.com/docker/machine/releases), obtain the latest release version number to replace the version number provided by the official guide.
+
+## _**Step 4 ~ Install Docker Compose**_
+> If you are using Docker For Windows or Docker For Mac, the installer already have Docker Machine and Docker Compose bundled and installed.
+
+Follow the [official installation guide](https://docs.docker.com/compose/install/). The version number shown on the guide might not be the latest, please visit [docker compose github release page](https://github.com/docker/compose/releases), obtain the latest release version number to replace the version number provided by the official guide.
+
 ## _**Optional Linux Post-installation Steps**_
 https://docs.docker.com/install/linux/linux-postinstall/
 
