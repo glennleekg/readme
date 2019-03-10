@@ -263,6 +263,7 @@ services:
       MYSQL_DATABASE: playdb
     volumes:
       - mariadb-server-data:/var/lib/mysql
+      - ./sql/init:/docker-entrypoint-initdb.d
       - ./sql:/home/$USER/projects/play-scala-anorm-example/sql
     networks:
       - backend
