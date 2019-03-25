@@ -1,4 +1,4 @@
-# Quick Start Guide - Digital Ocean CentOS 7 Server
+# Quick Start Guide - Digital Ocean CentOS 7 Server with Docker
 
 # 1. Prepare Droplet
 
@@ -28,7 +28,15 @@ Follow [Initial Server Setup with CentOS 7](https://www.digitalocean.com/communi
 ## _**Additional Recommended Steps**_
 Follow [Additional Recommended Steps for New CentOS 7 Server](https://www.digitalocean.com/community/tutorials/additional-recommended-steps-for-new-centos-7-servers).
 
-# 3. Other Setup
+# 3. Docker Setup
+
+## _**Install and Use Docker**_
+Follow [How To Install and Use Docker on CentOS 7](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-centos-7)
+
+### _**More About ...**_
+* [The Docker Ecosystem](https://www.digitalocean.com/community/tutorial_series/the-docker-ecosystem)
+
+# 4. Other Setup
 
 ## _**Puppet**_
 Follow [Installing Puppet to manage your infrastructure](https://www.digitalocean.com/community/tutorials/how-to-install-puppet-in-standalone-mode-on-centos-7) 
