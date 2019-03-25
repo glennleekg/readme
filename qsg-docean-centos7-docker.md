@@ -33,6 +33,9 @@ Follow [Additional Recommended Steps for New CentOS 7 Server](https://www.digita
 ## _**Install and Use Docker**_
 Follow [How To Install and Use Docker on CentOS 7](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-centos-7)
 
+## _**Setup Firewall Ports for Docker Swarm**_
+[Docker Swarm Firewall Ports](https://www.bretfisher.com/docker-swarm-firewall-ports/)
+
 ### _**More About ...**_
 * [The Docker Ecosystem](https://www.digitalocean.com/community/tutorial_series/the-docker-ecosystem)
 
