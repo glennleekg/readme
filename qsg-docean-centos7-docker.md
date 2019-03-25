@@ -6,7 +6,7 @@
 Follow [How-Tos > Create Droplets](https://www.digitalocean.com/docs/droplets/how-to/create/).
 
 ## _**Add SSH Keys to Droplets**_
-Follow [How-Tos > Add SSH Keys to Droplets](https://www.digitalocean.com/docs/droplets/how-to/create/).
+Follow [How-Tos > Add SSH Keys to Droplets](https://www.digitalocean.com/docs/droplets/how-to/add-ssh-keys/).
 
 ## _**Connect with SSH**_
 Follow [How-Tos > Connect with SSH](https://www.digitalocean.com/docs/droplets/how-to/connect-with-ssh/).
