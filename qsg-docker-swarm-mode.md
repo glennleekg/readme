@@ -156,7 +156,7 @@ yvwy1t4onjk7ibev27slx8nl2
 ## _**Investigate the "docker service create" Command**_
 
 ### **List all the Services**
-To see the list of services in the node ??? is it in the node or in the swarm ???, use ```docker service ls``` command. (Note: You might see other services which you have created out of this tutorial)
+To see the list of services in the swarm, use ```docker service ls``` command.
 
 ```
 $ docker service ls
@@ -328,3 +328,299 @@ Options:
 
 Reference:  
 [Deploy services to a swarm](https://docs.docker.com/engine/swarm/services/)
+
+# Create 3-Node Swarm Cluster
+
+We can’t do this with the built-in Docker on local machine because it is only a single node (host, instance, or OS), we need three node.
+
+Options:
+1. play-with-docker.com
+   * only needs a browser to get started
+   * comes with docker preinstalled
+   * only takes seconds to provision multiple machines
+   * require no investment at your end
+   * every four hours will reset and wipe all the work you have done
+2. docker-machine on local + VirtualBox 
+   * require a local machine with 8GB of RAM
+   * use docker-machine which by default works with VirtualBox locally
+   * each virtual machine probably needs 1GB of RAM
+3. DigitalOcean cloud + Docker Installed
+   * cheapest and easiest service to get started
+   * nice and fast running everything on SSD
+   * very similar to production setup
+4. Other cloud + Docker Installed
+   * there are many ways to get Docker installed
+     * you can use docker-machine, which has built-in drivers that allow you to provision Amazon instances, or Azure instances, DigitalOcean Droplets, or Google Compute nodes and etc
+     * you can install Docker with an automated script from get.docker.com on any place you can get a Linux virtual machine
+
+Note:  
+* You can install docker on multiple platform following [the best installation path for each platform](https://docs.docker.com/install/).  
+* docker-machine is an automation tool for provisioning virtual machines with Docker installed and setup both locally and on Internet. It is installed along with Docker for Windows and Docker for Mac, it need to be downloaded and installed manually for Linux.
+  * you may use docker-machine to save you a few steps on provisioning and installing, especially for cloud service like Amazon and Azure which required you to provision a lot of different things before you can get to the provisioning of virtual machine.
+  * you probably not going to use docker-machine in production, it is a tool to simply automate dev and test environments, it was never really designed to setup all of the production settings you might need for a multi-node swarm.
+
+## _**Step 1 ~ Prepare 3 Instances with Docker Installed**_
+
+### **Option 1: play-with-docker.com**
+
+1. Getting to the point where Docker installed
+    * Login into play-with-docker.com
+    * To setup three nodes, click the "ADD NEW INSTANCE" button three times to create three nodes, i.e node1, node2, and node3. 
+    * Nodes created automatically with Docker installed, and with specific ports of Swarm opened.
+
+2. Make sure the node is working
+    * To access node1, select node1 from the list on the left
+    * To test node1, run the command inside the console-like section
+      ```
+      $ docker info
+      ... 
+      (output show the docker information)
+      
+      $ ping node2
+      ... 
+      (output show successful ping log)
+      ```
+      similarly, access and test both node2 and node3
+
+### **Option 2: docker-machine on local + VirtualBox**
+
+1. Getting to the point where Docker installed
+    * Follow the [official installation guide](https://docs.docker.com/machine/install-machine/) to install docker-machine. The version number shown on the guide might not be the latest, please visit [docker machine github release page](https://github.com/docker/machine/releases), obtain the latest release version number to replace the version number provided by the official guide.
+    * Download and install VirtualBox from https://www.virtualbox.org.
+    * To setup three nodes, run  
+      ```
+      $ docker-machine create node1
+      $ docker-machine create node2
+      $ docker-machine create node3
+      ```
+    * Nodes created automatically with Docker installed, and with specific ports of Swarm opened.
+
+2. Make sure the node is working
+    * To access node1, run  
+      ```
+      $ docker-machine ssh node1
+      ... 
+      (remotely log in into node1 with remote terminal access)
+      ```
+      OR
+      ```
+      $ eval $(docker-machine env node1)
+      ... 
+      (set environment variables for the local terminal to talk to node1)
+      ```
+    * To test node1, run
+      ```
+      $ docker info
+      ... 
+      (output show the docker information)
+      
+      $ ping node2
+      ... 
+      (output show successful ping log)
+      ```
+      similarly, access and test both node2 and node3
+    
+    Note:
+    ```docker-machine env node1``` command will output few environment variables export commands which are used for enabling the communication between local terminal and node1, you may copy and paste those command to .bash_profile or .bashrc if you need it to be executed when logged in to the shell or when started the shell.
+
+### **Option 3: DigitalOcean cloud + Docker Installed**
+
+1. Getting to the point where Docker installed
+    * Follow the [Quick Start Guide - Digital Ocean CentOS 7 Server with Docker](https://github.com/glennleekg/readme/blob/master/qsg-docean-centos7-docker.md) to setup three droplets named node1, node2, and node3. 
+    * Nodes must be created with Docker installed, and with specific ports of Swarm opened.
+
+2. Make sure the node is working 
+    * To access node1, run  
+      ```
+      $ ssh user@node1
+      ... 
+      (remotely log in into node1 with remote terminal access)
+      ```
+    * To test node1, run 
+      ```
+      $ docker info
+      ... 
+      (output show the docker information)
+      
+      $ ping node2
+      ... 
+      (output show successful ping log)
+      ```
+      similarly, access and test both node2 and node3
+
+Reference:
+[Docker Swarm Firewall Ports](https://www.bretfisher.com/docker-swarm-firewall-ports/)
+
+## _**Step 2 ~ Create Docker Swarm**_
+
+Open three terminal windows with access to node1, node2, and node3 respectively.
+
+### **node1: initialize as manager node**
+1. Go to node1 terminal
+  
+    To initialize Swarm, run
+    ```
+    $ docker swarm init
+    Error response from daemon: could not choose an IP address to advertise since this system has multiple addresses on different interfaces (192.168.0.18 on eth0 and 172.18.0.58 on eth1) - specify one with --advertise-addr
+    ```
+    Note:  
+    192.168.0.18 is the public IP address  
+    172.18.0.58 is the private IP address
+
+    The command want us to specify an IP address to advertise the Swarm service on, the IP address need to be accessible from the other nodes. In this case, use the public IP address, run
+    ```
+    $ docker swarm init --advertise-addr 192.168.0.18
+    Swarm initialized: current node (xe5ibu8eyon0q5qajlpbcmh04) is now a manager.
+
+    To add a worker to this swarm, run the following command:
+
+        docker swarm join --token SWMTKN-1-04siscjef9ipeikprp08s9v6ph411oixv2qyf4pu8akkk14koj-ep445hzj45v2jdbhu2aykscfj 192.168.0.18:2377
+
+    To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+    ```
+
+2. At node1 terminal
+
+    To list nodes in the swarm, use ```docker node ls``` command. For the first time Swarm initialization, it will show one manager node is created, it is marked as leader, since we can only have one leader at a time amongst all managers.
+    ```
+    $ docker node ls
+    ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+    xe5ibu8eyon0q5qajlpbcmh04 *   node1               Ready               Active              Leader              18.09.3
+    ```
+
+### **node2: Join as worker node, then update to manager node**
+3. Go to node2 terminal
+
+    To join as worker node, copy and ```docker swarm join``` command in node1 terminal generated by ```docker swarm init```, paste it here and run it
+    ```
+    $ docker swarm join --token SWMTKN-1-04siscjef9ipeikprp08s9v6ph411oixv2qyf4pu8akkk14koj-ep445hzj45v2jdbhu2aykscfj 192.168.0.18:2377
+    This node joined a swarm as a worker.
+    ```
+
+4. Go to node1 terminal
+
+    To list nodes in the swarm, use ```docker node ls``` command. Now it show two nodes in total, notice that node2 is created as worker node, it has no manager status.
+    ```
+    $ docker node ls
+    ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+    xe5ibu8eyon0q5qajlpbcmh04 *   node1               Ready               Active              Leader              18.09.3
+    n2p1dv8o1a9oslrx8htcze6zk     node2               Ready               Active                                  18.09.3
+    ```
+
+5. Go to node2 terminal
+
+    Notice that worker node can't be used to view or modify cluster state, it can't use any Swarm commands, error responded from daemon as follows. 
+    ```
+    $ docker node ls
+    Error response from daemon: This node is not a swarm manager. Worker nodes can't be used to view or modify cluster state. Please run this command on a manager node or promote the current node to a manager.
+
+    $ docker service ls
+    Error response from daemon: This node is not a swarm manager. Worker nodes can't be used to view or modify cluster state. Please run this command on a manager node or promote the current node to a manager.
+    ```
+
+6. Go to node1 terminal
+
+    To promote node2 to manager, run
+    ```
+    $ docker node update --role manager node2
+    node2
+    ```
+
+7. At node1 terminal
+
+    To list nodes in the swarm, use ```docker node ls``` command. Now node2 is on "Reachable" manager status, while the node1 is still on "Leader" manager status.
+    ```
+    $ docker node ls
+    ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+    xe5ibu8eyon0q5qajlpbcmh04 *   node1               Ready               Active              Leader         18.09.3
+    n2p1dv8o1a9oslrx8htcze6zk     node2               Ready               Active              Reachable         18.09.3
+    ```
+    Note:
+    The little asterisk indicates the node you are currently talking to.
+
+### **node3: Join as manager node**
+8. Go to node1 terminal
+
+    To generate token for other node to join as manager node, run
+    ```
+    $ docker swarm join-token manager
+    To add a manager to this swarm, run the following command:
+
+        docker swarm join --token SWMTKN-1-04siscjef9ipeikprp08s9v6ph411oixv2qyf4pu8akkk14koj-c4h3e05g593ivmjpnue1lmvnz 192.168.0.18:2377
+    ```
+
+9. Go to node3 terminal
+
+    To join as manager node, copy the ```docker swarm join``` command in node1 terminal generated by ```docker swarm join-token manager```, paste it here and run it
+    ```
+    $ docker swarm join --token SWMTKN-1-04siscjef9ipeikprp08s9v6ph411oixv2qyf4pu8akkk14koj-c4h3e05g593ivmjpnue1lmvnz 192.168.0.18:2377
+    This node joined a swarm as a manager.
+    ```
+
+10. Go to node1 terminal
+  
+    To list nodes in the swarm, use ```docker node ls``` command. Now it show three nodes in total, notice that node3 is created as manager node, and it is on "Reachable" manager status. They all have manager status indicating that they are managers.
+    ```
+    $ docker node ls
+    ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+    xe5ibu8eyon0q5qajlpbcmh04 *   node1               Ready               Active              Leader              18.09.3
+    n2p1dv8o1a9oslrx8htcze6zk     node2               Ready               Active              Reachable           18.09.3
+    w6apm3i6zonuuyps294hbx4ty     node3               Ready               Active              Reachable           18.09.3
+    ```
+
+
+### _Token generated for other node to join the Swarm_
+* You can get these tokens at any time, you do not need to write them down or save them, they are part of the swarm configuration and stored encrypted on disk.
+* You can change these tokens in case they get exposed or you maybe getting a server that have had vulnerability on it. You can actually rotate those keys where you want to make sure that no nodes can join the swarm using the old key.
+
+### **service: start a 3 replicas service**
+Now we have a 3-node, redundant swarm, with three managers. Once you have got the swarm created, you  don't need to be typing commands into all the different nodes, you can really operate the whole swarm, for most things, from node1.
+
+11. Go to node1 terminal
+
+    To create a 3 replicas service, run
+    ```
+    $ docker service create --replicas 3 alpine ping 8.8.8.8
+    oe9f7oqoy90f0q3v6a1f72n7z
+    overall progress: 0 out of 3 tasks
+    overall progress: 3 out of 3 tasks
+    1/3: running
+    2/3: running
+    3/3: running
+    verify: Service converged
+    ```
+    
+    To see the list of services in the swarm, use ```docker service ls``` command. The output shows one service listed, given a random name (i.e. zen_mclaren) since we didn't specified, and have 3/3 replica spun up.
+    ```
+    $ docker service ls
+    ID                  NAME                MODE                REPLICAS            IMAGE               PORTS
+    oe9f7oqoy90f        zen_mclaren         replicated          3/3                 alpine:latest
+    ```
+
+    To see the current node running which tasks or containers, use ```docker node ps``` command. The output shows node1 is running the zen_mclaren.3 task or container.
+    ```
+    $ docker node ps
+    ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
+    iiag2rrwer99        zen_mclaren.3       alpine:latest       node1               Running             Running 24 minutes ago
+    ```
+
+    To see a specified node running which tasks or containers, use ```docker node ps <node_name>``` command. The output shows node2 is running the zen_mclaren.1 task or container, where node3 is running the zen_mclaren.2 task or container.
+    ```
+    $ docker node ps node2
+    ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
+    u3ggkkctmpm3        zen_mclaren.1       alpine:latest       node2               Running             Running 28 minutes ago
+
+    $ docker node ps node3
+    ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
+    7xllgir0uj5f        zen_mclaren.2       alpine:latest       node3               Running             Running 29 minutes ago
+    ```
+
+    To see the full list of tasks or containers of the service, use ```docker service ps <service_name>``` command. The output shows full list, and which task or container is running on which node.
+    ``` 
+    $ docker service ps zen_mclaren
+    ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
+    u3ggkkctmpm3        zen_mclaren.1       alpine:latest       node2               Running             Running 31 minutes ago
+    7xllgir0uj5f        zen_mclaren.2       alpine:latest       node3               Running             Running 31 minutes ago
+    iiag2rrwer99        zen_mclaren.3       alpine:latest       node1               Running             Running 31 minutes ago
+    ```
+    
